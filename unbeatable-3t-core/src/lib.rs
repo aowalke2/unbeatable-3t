@@ -1,4 +1,4 @@
-use std::{cmp, fmt, io};
+use std::{cmp, fmt};
 
 use rand::{Rng, rngs::ThreadRng};
 use thiserror::Error;
@@ -96,7 +96,7 @@ impl Game {
         }
     }
 
-    pub fn run(&mut self) -> State {
+    pub fn run(&mut self, player_move: Option<(usize, usize)>) -> State {
         if self.is_full() {
             return State::GameOver("Game is a draw".to_string());
         }
@@ -110,11 +110,14 @@ impl Game {
         }
 
         match self.is_player_turn {
-            true => {
-                if let Err(e) = self.player_turn() {
-                    return State::InProgresss(format!("{}", e));
+            true => match player_move {
+                Some((r, c)) => {
+                    if let Err(e) = self.player_turn(r, c) {
+                        return State::InProgresss(format!("{}", e));
+                    }
                 }
-            }
+                None => return State::InProgresss("No player move provided".to_string()),
+            },
             false => {
                 println!("Computer's move...");
                 if let Err(e) = self.cpu_turn() {
@@ -126,6 +129,10 @@ impl Game {
         self.is_player_turn = !self.is_player_turn;
 
         State::InProgresss("".to_string())
+    }
+
+    pub fn is_player_turn(&self) -> bool {
+        self.is_player_turn
     }
 
     fn is_full(&self) -> bool {
@@ -157,7 +164,7 @@ impl Game {
         .any(|combo| combo.iter().all(|&cell| cell == value))
     }
 
-    fn set_position(&mut self, r: usize, c: usize, value: &str) -> Result<(), GameError> {
+    fn player_turn(&mut self, r: usize, c: usize) -> Result<(), GameError> {
         if r >= 3 || c >= 3 {
             return Err(GameError::InvalidMove(r, c));
         }
@@ -166,37 +173,8 @@ impl Game {
             return Err(GameError::InvalidMove(r, c));
         }
 
-        self.board[r][c] = value.to_string();
+        self.board[r][c] = self.player_pick.into();
         Ok(())
-    }
-
-    fn player_turn(&mut self) -> Result<(), GameError> {
-        println!("Pick a row...");
-        let mut row_input_line = String::new();
-        io::stdin()
-            .read_line(&mut row_input_line)
-            .expect("Failed to read");
-
-        let r = match row_input_line.trim().parse::<usize>() {
-            Ok(r) => r,
-            Err(_) => return Err(GameError::InvalidInput("Must be a number!".to_string())),
-        };
-
-        println!("Pick a column...");
-        let mut column_input_line = String::new();
-        io::stdin()
-            .read_line(&mut column_input_line)
-            .expect("Failed to read");
-
-        let c = match column_input_line.trim().parse::<usize>() {
-            Ok(c) => c,
-            Err(_) => return Err(GameError::InvalidInput("Must be a number!".to_string())),
-        };
-
-        match self.set_position(r, c, self.player_pick.into()) {
-            Ok(_) => Ok(()),
-            Err(err) => Err(err),
-        }
     }
 
     fn cpu_turn(&mut self) -> Result<(), GameError> {
@@ -308,6 +286,6 @@ impl fmt::Display for Game {
 pub enum GameError {
     #[error("Invalid move")]
     InvalidMove(usize, usize),
-    #[error("Invalid input: {0}")]
+    #[error("{0}")]
     InvalidInput(String),
 }
