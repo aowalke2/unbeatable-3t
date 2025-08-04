@@ -1,0 +1,4 @@
+[workspace] 
+members = [ "platform/unbeatable-3t-cli","unbeatable-3t-core"]
+
+resolver = "3"
