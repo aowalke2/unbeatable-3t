@@ -1,48 +1,37 @@
-use unbeatable_3t_core::Game;
+use std::io;
+
+use unbeatable_3t_core::{Game, State};
 
 fn main() {
-    let mut game = Game::new();
-    let mut is_player_turn = true;
+    println!("Select mode Easy or Hard");
+    let mut mode_input_line = String::new();
+    io::stdin()
+        .read_line(&mut mode_input_line)
+        .expect("Failed to read");
+
+    println!("Select X or O");
+    let mut player_pick_input_line = String::new();
+    io::stdin()
+        .read_line(&mut player_pick_input_line)
+        .expect("Failed to read");
+
+    let mut game = Game::new(
+        mode_input_line.trim().to_lowercase().as_str().into(),
+        player_pick_input_line.trim().to_uppercase().as_str().into(),
+    );
 
     loop {
         println!("{}", game);
-        if game.is_full() {
-            println!("Game is a Draw!");
-            break;
-        }
-
-        if game.win("X") {
-            println!("X is the Winner!");
-            break;
-        }
-
-        if game.win("O") {
-            println!("O is the Winner!");
-            break;
-        }
-
-        let value = match is_player_turn {
-            true => "X",
-            false => "O",
-        };
-
-        match is_player_turn {
-            true => {
-                if let Err(e) = game.player_turn(value) {
-                    println!("{}", e);
-                    continue;
-                }
+        match game.run() {
+            State::GameOver(message) => {
+                println!("{}", message);
+                break;
             }
-            false => {
-                println!("Computer's move...");
-                if let Err(e) = game.random_cpu_turn(value) {
-                    println!("{}", e);
-                    continue;
-                }
+            State::InProgresss(message) => {
+                println!("{}", message);
             }
         };
 
-        is_player_turn = !is_player_turn;
         println!()
     }
 }
