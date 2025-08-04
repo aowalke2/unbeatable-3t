@@ -28,7 +28,39 @@ impl Game {
     }
 
     pub fn win(&self, value: &str) -> bool {
-        todo!()
+        if self.board[0][0] == value && self.board[1][0] == value && self.board[2][0] == value {
+            return true;
+        }
+
+        if self.board[0][1] == value && self.board[1][1] == value && self.board[2][1] == value {
+            return true;
+        }
+
+        if self.board[0][2] == value && self.board[1][2] == value && self.board[2][2] == value {
+            return true;
+        }
+
+        if self.board[0][0] == value && self.board[0][1] == value && self.board[0][2] == value {
+            return true;
+        }
+
+        if self.board[1][0] == value && self.board[1][1] == value && self.board[1][2] == value {
+            return true;
+        }
+
+        if self.board[2][0] == value && self.board[2][1] == value && self.board[2][2] == value {
+            return true;
+        }
+
+        if self.board[0][0] == value && self.board[1][1] == value && self.board[2][2] == value {
+            return true;
+        }
+
+        if self.board[0][2] == value && self.board[1][1] == value && self.board[2][0] == value {
+            return true;
+        }
+
+        return false;
     }
 
     fn set_position(&mut self, r: usize, c: usize, value: &str) -> Result<(), GameError> {

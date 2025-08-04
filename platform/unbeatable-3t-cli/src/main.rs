@@ -7,6 +7,17 @@ fn main() {
     loop {
         println!("{}", game);
         if game.is_full() {
+            println!("Game is a Draw!");
+            break;
+        }
+
+        if game.win("X") {
+            println!("X is the Winner!");
+            break;
+        }
+
+        if game.win("O") {
+            println!("O is the Winner!");
             break;
         }
 
@@ -14,10 +25,6 @@ fn main() {
             true => "X",
             false => "O",
         };
-
-        if game.win(value) {
-            break;
-        }
 
         match is_player_turn {
             true => {
