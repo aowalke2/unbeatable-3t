@@ -1,4 +1,4 @@
-use std::{fmt, io};
+use std::{cmp, fmt, io};
 
 use rand::{Rng, rngs::ThreadRng};
 use thiserror::Error;
@@ -8,12 +8,16 @@ pub enum Mode {
     Hard,
 }
 
-impl From<&str> for Mode {
-    fn from(value: &str) -> Self {
+impl TryFrom<&str> for Mode {
+    type Error = GameError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            "easy" => Mode::Easy,
-            "hard" => Mode::Hard,
-            _ => panic!("Parsing to mode failed"),
+            "easy" => Ok(Mode::Easy),
+            "hard" => Ok(Mode::Hard),
+            _ => Err(GameError::InvalidInput(
+                "Must choice Easy or Hard (any case)!".to_string(),
+            )),
         }
     }
 }
@@ -24,12 +28,16 @@ pub enum PlayerPick {
     O,
 }
 
-impl From<&str> for PlayerPick {
-    fn from(value: &str) -> Self {
+impl TryFrom<&str> for PlayerPick {
+    type Error = GameError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            "X" => PlayerPick::X,
-            "O" => PlayerPick::O,
-            _ => panic!("Parsing to player pick failed"),
+            "X" => Ok(PlayerPick::X),
+            "O" => Ok(PlayerPick::O),
+            _ => Err(GameError::InvalidInput(
+                "Must choice X or O (any case)!".to_string(),
+            )),
         }
     }
 }
@@ -39,6 +47,15 @@ impl From<PlayerPick> for &str {
         match value {
             PlayerPick::X => "X",
             PlayerPick::O => "O",
+        }
+    }
+}
+
+impl From<PlayerPick> for String {
+    fn from(value: PlayerPick) -> Self {
+        match value {
+            PlayerPick::X => "X".to_owned(),
+            PlayerPick::O => "O".to_owned(),
         }
     }
 }
@@ -162,7 +179,7 @@ impl Game {
 
         let r = match row_input_line.trim().parse::<usize>() {
             Ok(r) => r,
-            Err(_) => return Err(GameError::InvalidInput),
+            Err(_) => return Err(GameError::InvalidInput("Must be a number!".to_string())),
         };
 
         println!("Pick a column...");
@@ -173,7 +190,7 @@ impl Game {
 
         let c = match column_input_line.trim().parse::<usize>() {
             Ok(c) => c,
-            Err(_) => return Err(GameError::InvalidInput),
+            Err(_) => return Err(GameError::InvalidInput("Must be a number!".to_string())),
         };
 
         match self.set_position(r, c, self.player_pick.into()) {
@@ -185,7 +202,7 @@ impl Game {
     fn cpu_turn(&mut self) -> Result<(), GameError> {
         match self.mode {
             Mode::Easy => self.random_cpu_turn(self.computer_pick.into()),
-            Mode::Hard => todo!(),
+            Mode::Hard => self.minimax_cpu_turn(self.computer_pick.into()),
         }
     }
 
@@ -201,15 +218,77 @@ impl Game {
 
         let index = self.rng.random_range(0..empty_spots.len());
         let (r, c) = empty_spots[index];
-        match self.set_position(r, c, value) {
-            Ok(_) => Ok(()),
-            Err(err) => Err(err),
+        self.board[r][c] = value.to_string();
+        Ok(())
+    }
+
+    fn minimax_cpu_turn(&mut self, value: &str) -> Result<(), GameError> {
+        let mut best_score = 1000;
+        let mut best_move = (0, 0);
+        for r in 0..3 {
+            for c in 0..3 {
+                if self.board[r][c] == " " {
+                    self.board[r][c] = self.computer_pick.into();
+                    let score = self.minimax(true, 0);
+                    self.board[r][c] = " ".to_string();
+
+                    if score < best_score {
+                        best_move = (r, c);
+                        best_score = score;
+                    }
+                }
+            }
+        }
+
+        let (r, c) = best_move;
+        self.board[r][c] = value.to_string();
+        Ok(())
+    }
+
+    fn score(&self, depth: i32) -> i32 {
+        if self.win(self.player_pick.into()) {
+            return 10 - depth;
+        } else if self.win(self.computer_pick.into()) {
+            return depth - 10;
+        } else {
+            return 0;
         }
     }
 
-    fn score(&self) -> u32 {
-        // if self.win("X") {}
-        todo!()
+    fn minimax(&mut self, is_maximizer: bool, depth: i32) -> i32 {
+        let score = self.score(depth);
+        if score > 0 || score < 0 || self.is_full() {
+            return score;
+        }
+
+        match is_maximizer {
+            true => {
+                let mut best = -1000;
+                for r in 0..3 {
+                    for c in 0..3 {
+                        if self.board[r][c] == " " {
+                            self.board[r][c] = self.player_pick.into();
+                            best = cmp::max(best, self.minimax(false, depth + 1));
+                            self.board[r][c] = " ".to_string();
+                        }
+                    }
+                }
+                best
+            }
+            false => {
+                let mut best = 1000;
+                for r in 0..3 {
+                    for c in 0..3 {
+                        if self.board[r][c] == " " {
+                            self.board[r][c] = self.computer_pick.into();
+                            best = cmp::min(best, self.minimax(true, depth + 1));
+                            self.board[r][c] = " ".to_string();
+                        }
+                    }
+                }
+                best
+            }
+        }
     }
 }
 
@@ -229,6 +308,6 @@ impl fmt::Display for Game {
 pub enum GameError {
     #[error("Invalid move")]
     InvalidMove(usize, usize),
-    #[error("Must be a number!")]
-    InvalidInput,
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
 }
