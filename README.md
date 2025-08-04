@@ -16,7 +16,7 @@ Clone the repository:
 git clone git@github.com:aowalke2/unbeatable-3t.git
 ```
 
-Navigate to the project directory:
+Navigate to the cli platform:
 
 ```bash
 cd unbeatable-3t/platform/unbeatable-3t-cli
