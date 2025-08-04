@@ -24,7 +24,7 @@ fn main() {
             .read_line(&mut player_pick_input_line)
             .expect("Failed to read");
 
-        let player_pick = player_pick_input_line.trim().to_lowercase();
+        let player_pick = player_pick_input_line.trim().to_uppercase();
         match PlayerPick::try_from(player_pick.as_str()) {
             Ok(mode) => break mode,
             Err(e) => println!("{}", e),
